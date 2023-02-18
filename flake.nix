@@ -20,12 +20,13 @@
         overlays = [
           rust-overlay.overlays.default
           (self: super: let
-              rust-bundle = self.rust-bin.${rustChannel}.${rustVersion}.default;
+              toolchain = self.rust-bin.${rustChannel}.${rustVersion}.default;
             in {
               # unpack rust-overlay's bundles to inform crane
-              rustc = rust-bundle;
-              cargo = rust-bundle;
-              clippy = rust-bundle;
+              cargo = toolchain;
+              clippy = toolchain;
+              rustc = toolchain;
+              rustfmt = toolchain;
             })
         ];
         pkgs = import nixpkgs {
