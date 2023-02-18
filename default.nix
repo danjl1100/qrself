@@ -1,5 +1,6 @@
-{ pkgs, system, craneLib, advisory-db }:
+{ pkgs, system, crane, advisory-db }:
 let
+  craneLib = crane.mkLib pkgs;
   src = craneLib.cleanCargoSource ./.;
 
   # Common arguments can be set here to avoid repeating them later
