@@ -165,7 +165,7 @@ mod render {
     fn utf8_text(qr_code: &QrCode) -> hyper::Response<Body> {
         let ascii = qr_code
             .render()
-            .module_dimensions(10, 10)
+            .module_dimensions(2, 1)
             .light_color(" ")
             .dark_color("\u{2588}")
             .build();

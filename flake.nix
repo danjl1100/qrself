@@ -35,11 +35,13 @@
           inherit system crane advisory-db;
         };
       in rec {
-        inherit (code) checks;
+        checks = code.checks;
         packages.qrself = code.package;
+
         packages.default = packages.qrself;
+
         apps.default = flake-utils.lib.mkApp {
-          drv = packages.default;
+          drv = packages.qrself;
         };
 
         devShells.default = pkgs.mkShell {
