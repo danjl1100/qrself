@@ -32,14 +32,25 @@
           inherit system overlays;
         };
         code = pkgs.callPackage ./. {
-          inherit crane advisory-db;
+          inherit system crane advisory-db;
         };
       in rec {
-        packages = {
-          qrself = code.defaultPackage;
-          default = packages.qrself;
-        };
         inherit (code) checks;
+        packages.qrself = code.package;
+        packages.default = packages.qrself;
+        apps.default = flake-utils.lib.mkApp {
+          drv = packages.default;
+        };
+
+        devShells.default = pkgs.mkShell {
+          inputsFrom = builtins.attrValues self.checks;
+
+          # Extra inputs can be added here
+          nativeBuildInputs = [
+            pkgs.cargo
+            pkgs.rustc
+          ];
+        };
       }
     );
 }
