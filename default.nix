@@ -2,26 +2,10 @@
 let
   craneLib = crane.mkLib pkgs;
   src = craneLib.cleanCargoSource ./.;
-  # src = nix-filter {
-  #   root = ./.;
-  #   include = [
-  #     "src"
-  #     ./Cargo.lock
-  #     ./Cargo.toml
-  #   ];
-  # };
-  src_for_deps = src;
-  # nix-filter {
-  #   root = src;
-  #   include = [
-  #     "Cargo.lock"
-  #     "Cargo.toml"
-  #   ];
-  # };
 
   # Build *just* the cargo dependencies, so we can reuse all of that work
   cargoArtifacts = craneLib.buildDepsOnly {
-    src = src_for_deps;
+    inherit src;
   };
 
   # Run clippy (and deny all warnings) on the crate source,
