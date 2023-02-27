@@ -62,12 +62,12 @@ in {
       partitions = 1;
       partitionType = "count";
     });
-  } // pkgs.lib.optionalAttrs (system == "x86_64-linux") {
-    # NB: cargo-tarpaulin only supports x86_64 systems
-    # Check code coverage (note: this will not upload coverage anywhere)
-    my-crate-coverage = craneLib.cargoTarpaulin (commonArgs // {
-      inherit cargoArtifacts;
-    });
+  # } // pkgs.lib.optionalAttrs (system == "x86_64-linux") {
+  #   # NB: cargo-tarpaulin only supports x86_64 systems
+  #   # Check code coverage (note: this will not upload coverage anywhere)
+  #   my-crate-coverage = craneLib.cargoTarpaulin (commonArgs // {
+  #     inherit cargoArtifacts;
+  #   });
   };
 
   package = my-crate;

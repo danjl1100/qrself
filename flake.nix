@@ -33,7 +33,9 @@
         packages.docker = pkgs.dockerTools.buildImage {
           name = "rust-qrself";
           config = {
-            Cmd = [ "${pkgs.tini}/bin/tini" "${packages.qrself}/bin/qrself" ];
+            Cmd = let
+              init_prefix = if (system == "x86_64-linux") then ["${pkgs.tini}/bin/tini"] else [];
+            in init_prefix ++ ["${packages.qrself}/bin/qrself" ];
           };
         };
         packages.dockerScript = pkgs.writeShellScript "docker-test.sh" ''
