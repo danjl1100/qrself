@@ -19,21 +19,13 @@
         rustVersion = "latest";
         overlays = [
           rust-overlay.overlays.default
-          (self: super: let
-              toolchain = self.rust-bin.${rustChannel}.${rustVersion}.default;
-            in {
-              # unpack rust-overlay's bundles to inform crane
-              cargo = toolchain;
-              clippy = toolchain;
-              rustc = toolchain;
-              rustfmt = toolchain;
-            })
         ];
+        rustToolchain = pkgs.rust-bin.${rustChannel}.${rustVersion}.default;
         pkgs = import nixpkgs {
           inherit system overlays;
         };
         code = pkgs.callPackage ./. {
-          inherit system crane advisory-db;
+          inherit system crane advisory-db rustToolchain;
         };
       in rec {
         checks = code.checks;
@@ -61,8 +53,8 @@
 
           # Extra inputs can be added here
           nativeBuildInputs = [
-            pkgs.cargo
-            pkgs.rustc
+            pkgs.bacon
+            rustToolchain
           ];
         };
       }

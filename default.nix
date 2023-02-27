@@ -1,6 +1,6 @@
-{ pkgs, system, crane, advisory-db }:
+{ pkgs, system, crane, advisory-db, rustToolchain }:
 let
-  craneLib = crane.mkLib pkgs;
+  craneLib = (crane.mkLib pkgs).overrideToolchain rustToolchain;
   src = craneLib.cleanCargoSource ./.;
 
   # Common arguments can be set here to avoid repeating them later
