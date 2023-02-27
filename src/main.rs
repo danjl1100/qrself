@@ -18,19 +18,46 @@ use hyper::{
     Body, Request, Server,
 };
 use qrcode::QrCode;
-use std::{convert::Infallible, net::SocketAddr};
+use std::convert::Infallible;
+
+const ENV_BIND_ADDRESS: &str = "BIND_ADDRESS";
 
 #[tokio::main]
 async fn main() {
-    let addr = SocketAddr::from(([127, 0, 0, 1], 3000));
+    let bind_address_env = std::env::var(ENV_BIND_ADDRESS).ok();
+
+    // avoid a dependency on `clap`, this is slightly painful but works..?
+    let mut args = std::env::args();
+    let exec_name = args.next();
+    let bind_address_arg = args.next();
+    if let Some(extra_arg) = args.next() {
+        eprintln!("Unexpected arg {extra_arg:?}");
+        return;
+    }
+
+    let bind_address_str = bind_address_arg.or(bind_address_env);
+    let Some(bind_address_str) = bind_address_str else {
+        let exec_name = exec_name.unwrap_or_else(|| "<unknown>".into());
+        eprintln!("Expected bind address");
+        eprintln!("USAGE: {exec_name} BIND_ADDRESS");
+        eprintln!("   OR env-arg BIND_ADDRESS");
+        return;
+    };
+    let bind_address = match bind_address_str.parse() {
+        Ok(bind_address) => bind_address,
+        Err(error) => {
+            println!("ERROR: invalid bind address {bind_address_str:?}: {error}");
+            return;
+        }
+    };
 
     let make_svc =
         make_service_fn(|_conn| async { Ok::<_, Infallible>(service_fn(qrself_service)) });
-    let server = Server::bind(&addr).serve(make_svc);
-    println!("Serving qrself at {addr} ...");
+    let server = Server::bind(&bind_address).serve(make_svc);
+    println!("Serving qrself at {bind_address} ...");
 
     if let Err(e) = server.await {
-        eprintln!("server error: {e}");
+        eprintln!("ERROR: server error: {e}");
     }
 }
 
