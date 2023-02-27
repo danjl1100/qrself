@@ -38,6 +38,17 @@
       in rec {
         checks = code.checks;
         packages.qrself = code.package;
+        packages.docker = pkgs.dockerTools.buildImage {
+          name = "rust-qrself";
+          config = {
+            Cmd = [ "${pkgs.tini}/bin/tini" "${packages.qrself}/bin/qrself" ];
+          };
+        };
+        packages.dockerScript = pkgs.writeShellScript "docker-test.sh" ''
+          set -e
+          docker load < $(nix build .#docker --no-link --print-out-paths)
+          echo "Now run:  docker run --rm -p 3000:3000 [the hash]"
+        '';
 
         packages.default = packages.qrself;
 
