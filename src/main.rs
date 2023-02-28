@@ -174,6 +174,9 @@ mod render {
 
     use crate::{response_builder, VALID_HEADERS};
 
+    static HEADER_CONTENT_TYPE_HTML: HeaderValue =
+        HeaderValue::from_static("text/html; charset=UTF-8");
+
     #[derive(Clone, Copy, Debug, Default)]
     pub enum Type {
         Utf8Text,
@@ -197,10 +200,7 @@ mod render {
             .dark_color("\u{2588}")
             .build();
         response_builder()
-            .header(
-                "Content-Type",
-                HeaderValue::from_static("text/html;charset=utf-8"),
-            )
+            .header("Content-Type", HEADER_CONTENT_TYPE_HTML.clone())
             .body(ascii.into())
             .expect(VALID_HEADERS)
     }
@@ -209,7 +209,7 @@ mod render {
         let image_bytes_base64 = general_purpose::STANDARD_NO_PAD.encode(image_bytes);
         let body = html_body_b64_image(&image_bytes_base64);
         response_builder()
-            .header("Content-Type", HeaderValue::from_static("text/html"))
+            .header("Content-Type", HEADER_CONTENT_TYPE_HTML.clone())
             .body(body.into())
             .expect(VALID_HEADERS)
     }
@@ -254,6 +254,7 @@ mod render {
             "<!DOCTYPE html>
 <html>
 <head>
+    <meta name=\"viewport\" content=\"width=device-width, initial-scale=1\">
     <title>Redirecting to target</title>
     <style>
     body {{
@@ -275,7 +276,7 @@ mod render {
 </head>
 <body>
     <div>
-        <img src=\"data:image/png;base64,{image_bytes_base64}\" />
+        <img src=\"data:image/png;base64,{image_bytes_base64}\" alt=\"the QR code to scan\" />
     </div>
 </body>
 </html>"
