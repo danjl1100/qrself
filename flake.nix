@@ -41,7 +41,9 @@
         packages.dockerScript = pkgs.writeShellScript "docker-test.sh" ''
           set -e
           docker load < $(nix build .#docker --no-link --print-out-paths)
-          echo "Now run:  docker run --rm -p 3000:3000 [the hash]"
+          echo "Now run:  docker run --rm -p 3000:3000 -e BIND_ADDRESS=0.0.0.0:3000 [the hash]"
+          echo "Or:   docker image tag [tag] [the hash]"
+          echo "Then: docker image push [tag]    (run docker image ls, to recall the tag)"
         '';
 
         packages.default = packages.qrself;
