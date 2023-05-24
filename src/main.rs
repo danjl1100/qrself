@@ -64,8 +64,9 @@ async fn main() {
 const VALID_HEADERS: &str = "valid static headers";
 #[allow(clippy::unused_async)] // `service_fn` requires an async function
 async fn qrself_service(req: Request<Body>) -> Result<hyper::Response<Body>, Infallible> {
+    let req = SanitizedRequest::new(req);
     let response = if let Some(render_ty) = parse_render_type(&req) {
-        let url = rebuild_request_url(&req);
+        let url = req.rebuild_request_url();
         match QrCode::new(&url) {
             Ok(qr_code) => render::render(&qr_code, render_ty),
             Err(e) => response_builder()
@@ -80,29 +81,67 @@ async fn qrself_service(req: Request<Body>) -> Result<hyper::Response<Body>, Inf
     };
     Ok(response)
 }
-fn truncate_str(s: &str) -> &str {
-    const TRUNCATE_LEN: usize = 1024;
-    &s[0..(s.len().min(TRUNCATE_LEN))]
+
+use private::SanitizedRequest;
+mod private {
+    use super::{Body, Request};
+
+    /// Helper type to ensure all data from the request (USER data) is properly truncated
+    pub struct SanitizedRequest(Request<Body>);
+    impl SanitizedRequest {
+        pub fn new(req: Request<Body>) -> Self {
+            Self(req)
+        }
+        pub fn get_uri_path(&self) -> &str {
+            let uri_path = self.0.uri().path();
+            Self::truncate_str(uri_path)
+        }
+        pub fn get_accept_header(&self) -> &str {
+            let accept_header = self
+                .0
+                .headers()
+                .get("accept")
+                .and_then(|value| value.to_str().ok())
+                .unwrap_or_default();
+            Self::truncate_str(accept_header)
+        }
+        fn clone_host(&self) -> String {
+            let host = self
+                .0
+                .headers()
+                .get("host")
+                .map(|header_value| String::from_utf8_lossy(header_value.as_bytes()))
+                .unwrap_or_default();
+            let mut host = host.to_string();
+            Self::truncate_string(&mut host);
+            host
+        }
+        pub fn rebuild_request_url(&self) -> String {
+            let uri = self.get_uri_path();
+            let host = self.clone_host();
+            format!("http://{host}{uri}")
+        }
+    }
+    impl SanitizedRequest {
+        const TRUNCATE_LEN: usize = 1024;
+        fn truncate_str(s: &str) -> &str {
+            &s[0..(s.len().min(Self::TRUNCATE_LEN))]
+        }
+        fn truncate_string(s: &mut String) {
+            s.truncate(Self::TRUNCATE_LEN);
+        }
+    }
 }
+
 fn response_builder() -> hyper::http::response::Builder {
     hyper::Response::builder().header("X-Robots-Tag", HeaderValue::from_static("noindex"))
 }
-fn rebuild_request_url(req: &Request<Body>) -> String {
-    let uri = req.uri();
-    let host = req
-        .headers()
-        .get("host")
-        .map(|header_value| String::from_utf8_lossy(header_value.as_bytes()))
-        .unwrap_or_default();
-    format!("http://{host}{uri}")
-}
 
 /// Returns the type for rendering to match the request, or `None` for disallowed paths
-fn parse_render_type(req: &Request<Body>) -> Option<render::Type> {
+fn parse_render_type(req: &SanitizedRequest) -> Option<render::Type> {
     use render::Type;
     const DISALLOW_URIS: &[&str] = &["/favicon.ico", "/robots.txt"];
-    let uri_path = req.uri().path();
-    let uri_path = truncate_str(uri_path);
+    let uri_path = req.get_uri_path();
     if DISALLOW_URIS.contains(&uri_path) {
         return None;
     }
@@ -117,18 +156,13 @@ fn parse_render_type(req: &Request<Body>) -> Option<render::Type> {
     Some(ty)
 }
 /// Returns the render type for the first recognized Accept header MIME type (if any)
-fn parse_accept_type(req: &Request<Body>) -> Option<render::Type> {
+fn parse_accept_type(req: &SanitizedRequest) -> Option<render::Type> {
     use render::Type;
     const MIME_DELIMITER: char = ',';
     const MIME_HTML: &[&str] = &["text/html"];
     const MIME_IMAGE: &[&str] = &["image/png", "image/*"];
     const MIME_ALL: &[&str] = &["*/*"];
-    let accept_header = req
-        .headers()
-        .get("accept")
-        .and_then(|value| value.to_str().ok())
-        .unwrap_or_default();
-    let accept_header = truncate_str(accept_header);
+    let accept_header = req.get_accept_header();
     let accept_types = accept_header.split(MIME_DELIMITER).map(str::trim);
     for accept in accept_types {
         if MIME_HTML.contains(&accept) {

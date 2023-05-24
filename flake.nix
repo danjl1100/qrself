@@ -31,19 +31,20 @@
         checks = code.checks;
         packages.qrself = code.package;
         packages.docker = pkgs.dockerTools.buildImage {
-          name = "rust-qrself";
+          name = "qrself";
           config = {
             Cmd = let
               init_prefix = if (system == "x86_64-linux") then ["${pkgs.tini}/bin/tini"] else [];
             in init_prefix ++ ["${packages.qrself}/bin/qrself" ];
           };
         };
-        packages.dockerScript = pkgs.writeShellScript "docker-test.sh" ''
+        packages.dockerScript = pkgs.writeShellScriptBin "docker-test.sh" ''
           set -e
           docker load < $(nix build .#docker --no-link --print-out-paths)
           echo "Now run:  docker run --rm -p 3000:3000 -e BIND_ADDRESS=0.0.0.0:3000 [the hash]"
-          echo "Or:   docker image tag [the hash] [tag]"
-          echo "Then: docker image push [tag]    (run docker image ls, to recall the tag)"
+          echo "Or:   docker image tag [the hash] registry.fly.io/qrself:qrself-test"
+          echo "      docker image push registry.fly.io/qrself:qrself-test    (run docker image ls, to recall the tag)"
+          echo "      fly deploy . --image registry.fly.io/qrself:qrself-test"
         '';
 
         packages.default = packages.qrself;
